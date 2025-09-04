@@ -1,0 +1,37 @@
+// Prisma schema for MySQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Peserta {
+  id               Int      @id @default(autoincrement())
+  nik              String   @unique
+  nama             String
+  jenisKepesertaan String
+  faskes           String?
+  kabupaten        String?
+  tanggalDaftar    DateTime
+  createdAt        DateTime @default(now())
+}
+
+model Klaim {
+  id         Int      @id @default(autoincrement())
+  rumahSakit String
+  bulan      DateTime // gunakan tanggal (YYYY-MM-01) utk represent bulan
+  jumlah     Int
+  createdAt  DateTime @default(now())
+}
