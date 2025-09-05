@@ -7,6 +7,7 @@ const authRoutes = require('../routes/auth');
 const uploadRoutes = require('../routes/upload');
 const pesertaRoutes = require('../routes/peserta');
 const klaimRoutes = require('../routes/klaim');
+const dashboardRoutes = require('../routes/dashboard')
 
 
 const app = express();
@@ -19,6 +20,7 @@ app.use('/auth', authRoutes);
 app.use('/upload', uploadRoutes);
 app.use('/peserta', pesertaRoutes);
 app.use('/klaim', klaimRoutes);
+app.use('/dashboard', dashboardRoutes);
 
 
 const port = process.env.PORT || 5000;

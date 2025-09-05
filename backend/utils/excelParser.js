@@ -1,79 +1,93 @@
-const xlsx = require('xlsx');
+const XLSX = require('xlsx')
 
-/**
- * Membaca file Excel dan mengembalikan object { peserta: [], klaim: [] }
- * - Sheet "Peserta" (atau sheet pertama) dengan kolom:
- *   NIK, Nama, Jenis, TanggalDaftar, Faskes, Kabupaten
- * - Sheet "Klaim" (opsional) dengan kolom:
- *   RumahSakit, Bulan (YYYY-MM), Jumlah
- */
-function parseExcel(filePath) {
-  const wb = xlsx.readFile(filePath);
-  const sheets = wb.SheetNames;
+const SHEETS = {
+  keliling: ['Kegiatan BPJS KesehatanKeliling'],
+  viola: ['VIOLA'],
+  prima: ['Indeks Performa Pelayanan Prima', 'Indeks Peforma Pelayanan  Prima', 'Indeks Peforma Pelayanan Prima'],
+  pengaduan: ['IndekPenangananPengaduanPeserta', 'Indeks Penanganan Pengaduan Peserta'],
+}
 
-  // Helper: parse sheet menjadi array of objects
-  const sheetToJson = (name) => xlsx.utils.sheet_to_json(wb.Sheets[name], { defval: null });
-
-  // Peserta
-  let pesertaRows = [];
-  const pesertaSheet = sheets.find((s) => s.toLowerCase() === 'peserta') || sheets[0];
-  if (pesertaSheet) pesertaRows = sheetToJson(pesertaSheet);
-
-  const peserta = pesertaRows
-    .filter((r) => r.NIK && r.Nama && r.TanggalDaftar)
-    .map((r) => ({
-      nik: String(r.NIK).trim(),
-      nama: String(r.Nama).trim(),
-      jenisKepesertaan: r.Jenis ? String(r.Jenis).trim() : 'Tidak Diketahui',
-      faskes: r.Faskes ? String(r.Faskes).trim() : null,
-      kabupaten: r.Kabupaten ? String(r.Kabupaten).trim() : null,
-      tanggalDaftar: parseExcelDate(r.TanggalDaftar),
-    }));
-
-  // Klaim (opsional)
-  let klaim = [];
-  const klaimSheet = sheets.find((s) => s.toLowerCase() === 'klaim');
-  if (klaimSheet) {
-    const rows = sheetToJson(klaimSheet);
-    klaim = rows
-      .filter((r) => r.RumahSakit && r.Bulan && r.Jumlah != null)
-      .map((r) => ({
-        rumahSakit: String(r.RumahSakit).trim(),
-        bulan: parseYearMonth(r.Bulan),
-        jumlah: Number(r.Jumlah) || 0,
-      }));
+const toMonth = (v) => {
+  if (v instanceof Date) {
+    const y = v.getFullYear()
+    const m = String(v.getMonth() + 1).padStart(2, '0')
+    return `${y}-${m}`
   }
-
-  return { peserta, klaim };
+  // "YYYY-MM" | "YYYY/MM" | "YYYY-MM-DD"
+  const s = String(v).trim()
+  const m1 = s.match(/^(\d{4})[-/](\d{2})/)
+  if (m1) return `${m1[1]}-${m1[2]}`
+  // fallback: try Date
+  const d = new Date(s)
+  if (!isNaN(d)) return toMonth(d)
+  return s
 }
 
-function parseExcelDate(val) {
-  // dukung: serial excel, string tanggal, atau Date
-  if (val instanceof Date) return val;
-  if (typeof val === 'number') {
-    // Excel serial date -> JS Date
-    const epoch = new Date(Date.UTC(1899, 11, 30));
-    const d = new Date(epoch.getTime() + val * 24 * 60 * 60 * 1000);
-    return d;
+const excelDateToJSDate = (serial) => new Date(Math.round((serial - 25569) * 86400 * 1000))
+
+const normalizeKeys = (row) => {
+  const map = {
+    // keliling
+    Tanggal: 'tanggal', tgl: 'tanggal', tanggal: 'tanggal',
+    Lokasi: 'lokasi', lokasi: 'lokasi', Tempat: 'lokasi',
+    Peserta: 'peserta', peserta: 'peserta', jumlahPeserta: 'peserta',
+
+    // umum
+    Bulan: 'bulan', bulan: 'bulan',
+    Skor: 'skor', skor: 'skor',
+    Nilai: 'nilai', nilai: 'nilai',
+    Jumlah: 'jumlah', jumlah: 'jumlah',
+  }
+  const out = {}
+  for (const k in row) out[map[k] || map[k?.trim()] || k] = row[k]
+  return out
+}
+
+function getSheet(workbook, targets) {
+  const norm = (s) => s.toLowerCase().replace(/\s+/g, '')
+  const wanted = targets.map(norm)
+  const foundName = workbook.SheetNames.find((n) => wanted.includes(norm(n)))
+  return foundName ? XLSX.utils.sheet_to_json(workbook.Sheets[foundName], { defval: null }) : []
+}
+
+function parseExcel(filePath) {
+  const wb = XLSX.readFile(filePath)
+
+  // Sheet 1: Keliling
+  const rawKel = getSheet(wb, SHEETS.keliling).map(normalizeKeys)
+  const kegiatanKeliling = rawKel.map((r) => {
+    let t = r.tanggal
+    if (typeof t === 'number') t = excelDateToJSDate(t)
+    else if (!(t instanceof Date)) { const d = new Date(t); if (!isNaN(d)) t = d }
+    return {
+      tanggal: t,
+      lokasi: (r.lokasi || '').toString().trim(),
+      peserta: Number(r.peserta || 0),
     }
-  // coba parse string (YYYY-MM-DD atau DD/MM/YYYY)
-  const s = String(val).trim();
-  const iso = new Date(s);
-  if (!isNaN(iso)) return iso;
-  const [d, m, y] = s.split(/[\/-]/);
-  if (y && m && d) return new Date(Number(y), Number(m) - 1, Number(d));
-  return new Date();
+  }).filter((x) => x.tanggal && x.lokasi)
+
+  // Sheet 2: VIOLA
+  const rawViola = getSheet(wb, SHEETS.viola).map(normalizeKeys)
+  const viola = rawViola.map((r) => ({
+    bulan: toMonth(r.bulan),
+    skor: parseFloat(r.skor ?? r.nilai ?? 0),
+  })).filter((x) => x.bulan)
+
+  // Sheet 3: Indeks Prima
+  const rawPrima = getSheet(wb, SHEETS.prima).map(normalizeKeys)
+  const indeksPrima = rawPrima.map((r) => ({
+    bulan: toMonth(r.bulan),
+    nilai: parseFloat(r.nilai ?? r.skor ?? 0),
+  })).filter((x) => x.bulan)
+
+  // Sheet 4: Pengaduan
+  const rawPeng = getSheet(wb, SHEETS.pengaduan).map(normalizeKeys)
+  const indeksPengaduan = rawPeng.map((r) => ({
+    bulan: toMonth(r.bulan),
+    jumlah: parseInt(r.jumlah ?? 0, 10),
+  })).filter((x) => x.bulan)
+
+  return { kegiatanKeliling, viola, indeksPrima, indeksPengaduan }
 }
 
-function parseYearMonth(val) {
-  if (val instanceof Date) return new Date(val.getFullYear(), val.getMonth(), 1);
-  const s = String(val).trim();
-  // formats: YYYY-MM or YYYY/MM or YYYY.MM
-  const m = s.match(/(\d{4})[\/.\-](\d{1,2})/);
-  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, 1);
-  const d = new Date(s);
-  if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), 1);
-  return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-}
-
-module.exports = { parseExcel };
+module.exports = { parseExcel }

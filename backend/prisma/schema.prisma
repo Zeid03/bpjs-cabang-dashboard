@@ -35,3 +35,29 @@ model Klaim {
   jumlah     Int
   createdAt  DateTime @default(now())
 }
+
+model KegiatanKeliling {
+  id        Int      @id @default(autoincrement())
+  tanggal   DateTime
+  lokasi    String
+  peserta   Int
+}
+
+model Viola {
+  id     Int    @id @default(autoincrement())
+  bulan  String
+  skor   Float
+}
+
+model IndeksPrima {
+  id     Int    @id @default(autoincrement())
+  bulan  String
+  nilai  Float
+}
+
+model IndeksPengaduan {
+  id     Int    @id @default(autoincrement())
+  bulan  String
+  jumlah Int
+}
+

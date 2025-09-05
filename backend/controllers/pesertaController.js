@@ -51,52 +51,65 @@ async function listPeserta(req, res) {
 async function statsPeserta(req, res) {
   try {
     const peserta = await prisma.peserta.findMany({
-      select: { tanggalDaftar: true, jenisKepesertaan: true },
-    });
+      select: { tanggalDaftar: true, jenisKepesertaan: true, kabupaten: true },
+    })
 
     const klaim = await prisma.klaim.findMany({
       select: { rumahSakit: true, jumlah: true },
-    });
+    })
 
     // Statistik bulanan pendaftaran peserta
-    const monthly = {};
+    const monthly = {}
     for (const p of peserta) {
-      const year = p.tanggalDaftar.getFullYear();
-      const month = String(p.tanggalDaftar.getMonth() + 1).padStart(2, '0');
-      const key = `${year}-${month}`;
-      monthly[key] = (monthly[key] || 0) + 1;
+      const year = p.tanggalDaftar.getFullYear()
+      const month = String(p.tanggalDaftar.getMonth() + 1).padStart(2, '0')
+      const key = `${year}-${month}`
+      monthly[key] = (monthly[key] || 0) + 1
     }
 
     const lineTrend = Object.entries(monthly)
       .sort(([a], [b]) => (a > b ? 1 : -1))
-      .map(([month, count]) => ({ month, count }));
+      .map(([month, count]) => ({ month, count }))
 
     // Statistik jenis kepesertaan
-    const jenisMap = {};
+    const jenisMap = {}
     for (const p of peserta) {
-      jenisMap[p.jenisKepesertaan] = (jenisMap[p.jenisKepesertaan] || 0) + 1;
+      jenisMap[p.jenisKepesertaan] = (jenisMap[p.jenisKepesertaan] || 0) + 1
     }
 
     const pieJenis = Object.entries(jenisMap).map(([name, value]) => ({
       name,
       value,
-    }));
+    }))
 
     // Statistik klaim per rumah sakit
-    const rsMap = {};
+    const rsMap = {}
     for (const k of klaim) {
-      rsMap[k.rumahSakit] = (rsMap[k.rumahSakit] || 0) + k.jumlah;
+      rsMap[k.rumahSakit] = (rsMap[k.rumahSakit] || 0) + k.jumlah
     }
 
     const barKlaimRS = Object.entries(rsMap).map(([name, total]) => ({
       name,
       total,
-    }));
+    }))
 
-    return res.json({ lineTrend, pieJenis, barKlaimRS });
+    // 🔹 Statistik peserta per kabupaten
+    const kabMap = {}
+    for (const p of peserta) {
+      if (!p.kabupaten) continue
+      kabMap[p.kabupaten] = (kabMap[p.kabupaten] || 0) + 1
+    }
+
+    const barKabupaten = Object.entries(kabMap).map(([name, total]) => ({
+      name,
+      total,
+    }))
+
+    // Return semua statistik
+    return res.json({ lineTrend, pieJenis, barKlaimRS, barKabupaten })
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Gagal mengambil statistik' });
+    console.error(err)
+    return res.status(500).json({ message: 'Gagal mengambil statistik' })
   }
 }
 
