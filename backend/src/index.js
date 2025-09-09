@@ -5,8 +5,6 @@ const cors = require('cors');
 
 const authRoutes = require('../routes/auth');
 const uploadRoutes = require('../routes/upload');
-const pesertaRoutes = require('../routes/peserta');
-const klaimRoutes = require('../routes/klaim');
 const dashboardRoutes = require('../routes/dashboard')
 
 
@@ -18,9 +16,11 @@ app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || '*'}));
 app.get('/', (req, res) => res.json({ ok: true, name: 'BPJS Cabang API' }));
 app.use('/auth', authRoutes);
 app.use('/upload', uploadRoutes);
-app.use('/peserta', pesertaRoutes);
-app.use('/klaim', klaimRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/keliling', require('../routes/keliling'))
+app.use('/viola', require('../routes/viola'))
+app.use('/prima', require('../routes/prima'))
+app.use('/pengaduan', require('../routes/pengaduan'))
 
 
 const port = process.env.PORT || 5000;

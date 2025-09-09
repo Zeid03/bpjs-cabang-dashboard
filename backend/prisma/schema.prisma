@@ -17,30 +17,15 @@ model User {
   createdAt    DateTime @default(now())
 }
 
-model Peserta {
-  id               Int      @id @default(autoincrement())
-  nik              String   @unique
-  nama             String
-  jenisKepesertaan String
-  faskes           String?
-  kabupaten        String?
-  tanggalDaftar    DateTime
-  createdAt        DateTime @default(now())
-}
-
-model Klaim {
-  id         Int      @id @default(autoincrement())
-  rumahSakit String
-  bulan      DateTime // gunakan tanggal (YYYY-MM-01) utk represent bulan
-  jumlah     Int
-  createdAt  DateTime @default(now())
-}
-
 model KegiatanKeliling {
   id        Int      @id @default(autoincrement())
   tanggal   DateTime
   lokasi    String
   peserta   Int
+
+  
+  kabupaten String   @default("")
+  kecamatan String   @default("")
 }
 
 model Viola {
@@ -59,5 +44,11 @@ model IndeksPengaduan {
   id     Int    @id @default(autoincrement())
   bulan  String
   jumlah Int
+
+  // SLA breakdown
+  sla1   Int    @default(0) // 1 hari
+  sla2   Int    @default(0) // 2 hari
+  sla3   Int    @default(0) // 3 hari
+  slagt3 Int    @default(0) // > 3 hari
 }
 

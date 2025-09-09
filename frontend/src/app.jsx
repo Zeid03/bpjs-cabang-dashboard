@@ -20,10 +20,10 @@ export default function App() {
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><Upload /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/login" replace />} />
-          <Route path="/detail/keliling" element={<DetailKeliling />} />
-          <Route path="/detail/viola" element={<DetailViola />} />
-          <Route path="/detail/prima" element={<DetailPrima />} />
-          <Route path="/detail/pengaduan" element={<DetailPengaduan />} />
+          <Route path="/detail/keliling" element={<ProtectedRoute><DetailKeliling/></ProtectedRoute>} />
+          <Route path="/detail/viola" element={<ProtectedRoute><DetailViola/></ProtectedRoute>} />
+          <Route path="/detail/prima" element={<ProtectedRoute><DetailPrima/></ProtectedRoute>} />
+          <Route path="/detail/pengaduan" element={<ProtectedRoute><DetailPengaduan/></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -67,7 +67,7 @@ export default function LineKeliling({ data = [], big }) {
           />
           {/* contoh target garis rata-rata */}
           {/* <ReferenceLine y={50} stroke={BPJS.blue} strokeDasharray="3 3" label="Target" /> */}
-          <Brush height={18} travellerWidth={8} />
+          {/* <Brush height={18} travellerWidth={8} /> */}
         </LineChart>
       </ResponsiveContainer>
     </div>
