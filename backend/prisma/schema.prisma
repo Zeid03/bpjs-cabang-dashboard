@@ -28,17 +28,39 @@ model KegiatanKeliling {
   kecamatan String   @default("")
 }
 
-model Viola {
-  id     Int    @id @default(autoincrement())
-  bulan  String
-  skor   Float
-}
+ model Viola {
+   id                     Int     @id @default(autoincrement())
+   kabupaten              String? @default("")
+   kecamatan              String? @default("")
+   bulan                  String
+   administrasi           Int     @default(0)
+   permintaanInformasi    Int     @default(0)
+   penangananPengaduan    Int     @default(0)
+   jumlahPeserta          Int
+   createdAt              DateTime @default(now())
+ }
+
+
 
 model IndeksPrima {
-  id     Int    @id @default(autoincrement())
-  bulan  String
-  nilai  Float
+  id     Int      @id @default(autoincrement())
+
+  // periode
+  tahun  Int
+  bulan  Int      // 1..12
+
+  // waves
+  wave1  Int      @default(0)
+  wave2  Int      @default(0)
+  wave3  Int      @default(0)
+  wave4  Int      @default(0)
+
+  // total (disimpan untuk export)
+  nilai  Int      @default(0)
+
+  createdAt DateTime @default(now())
 }
+
 
 model IndeksPengaduan {
   id     Int    @id @default(autoincrement())

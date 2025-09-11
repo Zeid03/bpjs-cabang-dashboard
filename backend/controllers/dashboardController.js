@@ -1,6 +1,6 @@
 const prisma = require('../src/prisma')
 
-// Comparator aman untuk objek { month: 'YYYY-MM', ... }
+// Comparator aman untuk objek { month: 'YYYY-MM' }
 function cmpMonthObj(a, b) {
   const ma = a?.month ?? ''
   const mb = b?.month ?? ''
@@ -32,24 +32,33 @@ async function stats(req, res) {
       .map(([month, v]) => ({ month, freq: v.freq, totalPeserta: v.total }))
       .sort(cmpMonthObj)
 
-    // VIOLA → freq & skor rata-rata
+    // VIOLA → freq & rata-rata jumlahPeserta (dibulatkan ke int)
     const vioMap = {}
     for (const v of vio) {
       if (!v.bulan) continue
       vioMap[v.bulan] = vioMap[v.bulan] || { freq: 0, sum: 0 }
       vioMap[v.bulan].freq += 1
-      vioMap[v.bulan].sum += Number(v.skor) || 0
+      vioMap[v.bulan].sum += Number(v.jumlahPeserta) || 0
     }
     const violaTrend = Object.entries(vioMap)
-      .map(([month, v]) => ({ month, freq: v.freq, skor: +(v.sum / v.freq).toFixed(2) }))
+      .map(([month, v]) => ({ month, freq: v.freq, jumlahPeserta: Math.round(v.sum / v.freq) }))
       .sort(cmpMonthObj)
 
     // Prima
+    // (di dashboardController.js, saat mapping primaBar)
     const primaBar = (prima || [])
-      .map((r) => ({ month: r.bulan, nilai: r.nilai }))
+      .map((r) => ({
+        month: `${r.tahun}-${String(r.bulan).padStart(2, '0')}`,
+        wave1: r.wave1 ?? 0,
+        wave2: r.wave2 ?? 0,
+        wave3: r.wave3 ?? 0,
+        wave4: r.wave4 ?? 0,
+        nilai: r.nilai ?? ((r.wave1||0)+(r.wave2||0)+(r.wave3||0)+(r.wave4||0)),
+      }))
       .sort(cmpMonthObj)
 
-    // Pengaduan + SLA breakdown
+
+    // Pengaduan + SLA
     const pengaduanBar = (peng || [])
       .map((r) => ({
         month: r.bulan,

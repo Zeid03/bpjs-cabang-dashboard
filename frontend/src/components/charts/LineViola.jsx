@@ -1,25 +1,4 @@
-// import React from 'react'
-// import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-
-// export default function LineViola({ data = [], big }) {
-//   return (
-//     <div className={`bg-white rounded-2xl shadow p-4 ${big ? 'h-96' : 'h-64'}`}>
-//       {/* <h2 className="font-semibold mb-2">VIOLA (Skor / Bulan)</h2> */}
-//       <ResponsiveContainer width="100%" height="100%">
-//         <LineChart data={data}>
-//           <CartesianGrid strokeDasharray="3 3" />
-//           <XAxis dataKey="month" />
-//           <YAxis />
-//           <Tooltip />
-//           <Line type="monotone" dataKey="skor" />
-//         </LineChart>
-//       </ResponsiveContainer>
-//     </div>
-//   )
-// }
-
-// Refactore tahap 1
-
+// Refactore tahap 2
 import React from 'react'
 import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis,
@@ -33,7 +12,7 @@ function Tip({ active, payload, label }) {
   return (
     <div className="rounded-xl bg-white px-3 py-2 text-sm shadow ring-1 ring-slate-200">
       <div className="font-medium">{label}</div>
-      <div className="text-slate-600">Skor VIOLA: <b>{v}</b></div>
+      <div className="text-slate-600">Jumlah Peserta: <b>{v}</b></div>
     </div>
   )
 }
@@ -41,7 +20,6 @@ function Tip({ active, payload, label }) {
 export default function LineViola({ data = [], big }) {
   return (
     <div className={`bg-white rounded-2xl shadow p-4 ring-1 ring-slate-200 ${big ? 'h-96' : 'h-64'}`}>
-      {/* <h2 className="font-semibold mb-2">VIOLA (Skor / Bulan)</h2> */}
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 8 }}>
           <defs>
@@ -55,10 +33,10 @@ export default function LineViola({ data = [], big }) {
           <YAxis domain={['auto','auto']}/>
           <Tooltip content={<Tip/>}/>
           <Legend />
-          <Area type="monotone" dataKey="skor" stroke="none" fill="url(#violaArea)" />
+          <Area type="monotone" dataKey="jumlahPeserta" stroke="none" fill="url(#violaArea)" />
           <Line
             type="monotone"
-            dataKey="skor"
+            dataKey="jumlahPeserta"
             stroke={BPJS.blue}
             strokeWidth={3}
             dot={{ r: 3 }}

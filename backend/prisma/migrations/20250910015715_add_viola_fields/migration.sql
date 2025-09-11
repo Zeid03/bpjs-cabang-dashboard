@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE `viola` ADD COLUMN `administrasi` INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN `jenisLayanan` VARCHAR(191) NOT NULL DEFAULT '',
+    ADD COLUMN `kabupaten` VARCHAR(191) NOT NULL DEFAULT '',
+    ADD COLUMN `kecamatan` VARCHAR(191) NOT NULL DEFAULT '',
+    ADD COLUMN `penangananPengaduan` INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN `permintaanInformasi` INTEGER NOT NULL DEFAULT 0;

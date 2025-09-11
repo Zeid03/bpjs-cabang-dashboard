@@ -74,23 +74,46 @@ function parseExcel(filePath) {
     })
     .filter((x) => x.tanggal && x.lokasi)
 
-  // Sheet 2: VIOLA (biarkan seperti versi kamu jika sudah OK)
+  // Sheet 2: VIOLA
   const rawViola = getSheet(wb, SHEETS.viola).map(normalizeKeys)
-  const viola = rawViola
-    .map((r) => ({
-      bulan: toMonth(r.bulan),
-      skor: Number(r.skor ?? 0),
-    }))
-    .filter((x) => x.bulan)
+  const viola = rawViola.map((r) => {
+    const administrasi = Number(r['Administrasi'] ?? 0)
+    const permintaanInformasi = Number(r['Permintaan Informasi'] ?? 0)
+    const penangananPengaduan = Number(r['Penanganan Pengaduan'] ?? 0)
+    const jumlahPeserta = administrasi + permintaanInformasi + penangananPengaduan
+    return {
+      kabupaten: String(r['Kabupaten'] ?? '').trim(),
+      kecamatan: String(r['Kecamatan'] ?? '').trim(),
+      bulan: String(r['Bulan'] ?? '').slice(0, 7),
+      administrasi,
+      permintaanInformasi,
+      penangananPengaduan,
+      jumlahPeserta,
+    }
+  }).filter(x => x.bulan)
 
   // Sheet 3: Indeks Prima
   const rawPrima = getSheet(wb, SHEETS.prima).map(normalizeKeys)
-  const indeksPrima = rawPrima
-    .map((r) => ({
-      bulan: toMonth(r.bulan),
-      nilai: Number(r.nilai ?? 0),
-    }))
-    .filter((x) => x.bulan)
+  /**
+   * Header yang diharapkan (bebas kapitalisasi, normalizeKeys akan menurunkan-case & menghapus spasi/aksen):
+   * - 'tahun'
+   * - 'bulan'        -> angka 1..12 (bila excel text '01' tetap Number('01') = 1)
+   * - 'wave1'        (atau 'wave 1')
+   * - 'wave2'
+   * - 'wave3'
+   * - 'wave4'
+   */
+  const indeksPrima = rawPrima.map(r => {
+    const tahun = Number(r.tahun ?? r['thn'] ?? 0) || 0
+    const bulan = Number(r.bulan ?? r['bln'] ?? 0) || 0
+    const wave1 = Number(r.wave1 ?? r['wave 1'] ?? 0) || 0
+    const wave2 = Number(r.wave2 ?? r['wave 2'] ?? 0) || 0
+    const wave3 = Number(r.wave3 ?? r['wave 3'] ?? 0) || 0
+    const wave4 = Number(r.wave4 ?? r['wave 4'] ?? 0) || 0
+    const nilai = wave1 + wave2 + wave3 + wave4
+
+    return { tahun, bulan, wave1, wave2, wave3, wave4, nilai }
+  }).filter(x => x.tahun && x.bulan)
 
   // Sheet 4: Pengaduan (SLA)
   const rawPeng = getSheet(wb, SHEETS.pengaduan).map(normalizeKeys)
