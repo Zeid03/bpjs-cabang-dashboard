@@ -1,35 +1,34 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+// frontend/src/context/AuthContext.jsx
+import React, { createContext, useContext, useMemo, useState } from 'react';
 import api from '../api/axios';
 
-const AuthContext = createContext();
+const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  });
 
-  useEffect(() => {
-    if (!token) return;
-    // token exists -> (optional) fetch profile if needed
-    setUser(JSON.parse(localStorage.getItem('user') || 'null'));
-  }, [token]);
-
-  const login = async (email, password) => {
+  async function login(email, password) {
+    // backend expects: { email, password }
     const { data } = await api.post('/auth/login', { email, password });
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
-    setToken(data.token);
     setUser(data.user);
-  };
+    return data.user;
+  }
 
-  const logout = () => {
+  function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setToken(null);
     setUser(null);
-  };
+  }
 
-  const value = useMemo(() => ({ user, token, login, logout }), [user, token]);
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const value = useMemo(() => ({ user, login, logout }), [user]);
+  return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
 
-export function useAuth() { return useContext(AuthContext); }
+export function useAuth() {
+  return useContext(AuthCtx);
+}

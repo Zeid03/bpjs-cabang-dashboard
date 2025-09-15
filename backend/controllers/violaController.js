@@ -1,92 +1,100 @@
-const prisma = require('../src/prisma')
+const { z } = require('zod');
+const prisma = require('../src/prisma');
 
-// GET /viola?bulan=YYYY-MM (opsional)
+const monthStr = z.string().regex(/^\d{4}-\d{2}$/, 'Format bulan harus YYYY-MM');
+const nonneg = z.coerce.number().int().min(0);
+
+const listQuery = z.object({ bulan: monthStr.optional() });
+
+const createBody = z.object({
+  bulan: monthStr,
+  kabupaten: z.string().trim().optional().default(''),
+  kecamatan: z.string().trim().optional().default(''),
+  administrasi: nonneg.default(0),
+  permintaanInformasi: nonneg.default(0),
+  penangananPengaduan: nonneg.default(0),
+});
+
+const idParam = z.object({ id: z.coerce.number().int().positive() });
+
+const updateBody = z.object({
+  bulan: monthStr.optional(),
+  kabupaten: z.string().trim().optional(),
+  kecamatan: z.string().trim().optional(),
+  administrasi: nonneg.optional(),
+  permintaanInformasi: nonneg.optional(),
+  penangananPengaduan: nonneg.optional(),
+});
+
 async function list(req, res) {
-  const { bulan } = req.query
-  const where = bulan ? { bulan } : {}
-  const rows = await prisma.viola.findMany({
-    where,
-    orderBy: { bulan: 'desc' },
-  })
-  res.json(rows)
+  try {
+    const parse = listQuery.safeParse(req.query);
+    if (!parse.success) return res.status(400).json({ message: 'Query tidak valid', issues: parse.error.flatten() });
+    const where = parse.data.bulan ? { bulan: parse.data.bulan } : {};
+    const rows = await prisma.viola.findMany({ where, orderBy: { bulan: 'desc' } });
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Gagal mengambil data' });
+  }
 }
 
-// POST /viola
-// jumlahPeserta akan dihitung: administrasi + permintaanInformasi + penangananPengaduan
+// jumlahPeserta = a + i + p
 async function create(req, res) {
   try {
-    const { bulan, administrasi = 0, permintaanInformasi = 0, penangananPengaduan = 0, kabupaten = '', kecamatan = '' } = req.body
-    if (!bulan) return res.status(400).json({ message: 'bulan wajib' })
+    const parse = createBody.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ message: 'Input tidak valid', issues: parse.error.flatten() });
 
-    const a = Math.max(0, Number(administrasi) || 0)
-    const i = Math.max(0, Number(permintaanInformasi) || 0)
-    const p = Math.max(0, Number(penangananPengaduan) || 0)
-    const jumlahPeserta = a + i + p
+    const { bulan, kabupaten, kecamatan, administrasi, permintaanInformasi, penangananPengaduan } = parse.data;
+    const jumlahPeserta = administrasi + permintaanInformasi + penangananPengaduan;
 
     const row = await prisma.viola.create({
-      data: {
-        bulan,
-        kabupaten,
-        kecamatan,
-        administrasi: a,
-        permintaanInformasi: i,
-        penangananPengaduan: p,
-        jumlahPeserta,
-      },
-    })
-    res.status(201).json(row)
+      data: { bulan, kabupaten, kecamatan, administrasi, permintaanInformasi, penangananPengaduan, jumlahPeserta },
+    });
+    res.status(201).json(row);
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ message: 'Gagal membuat data VIOLA' })
+    console.error(e);
+    res.status(500).json({ message: 'Gagal membuat data VIOLA' });
   }
 }
 
-// PUT /viola/:id
-// Selalu hitung ulang jumlahPeserta berdasarkan field komponen
 async function update(req, res) {
   try {
-    const id = Number(req.params.id)
-    const { bulan, administrasi, permintaanInformasi, penangananPengaduan, kabupaten, kecamatan } = req.body
+    const pid = idParam.safeParse(req.params);
+    if (!pid.success) return res.status(400).json({ message: 'Param tidak valid', issues: pid.error.flatten() });
+    const body = updateBody.safeParse(req.body);
+    if (!body.success) return res.status(400).json({ message: 'Input tidak valid', issues: body.error.flatten() });
 
-    const data = {}
-    if (bulan) data.bulan = bulan
-    if (kabupaten != null) data.kabupaten = kabupaten
-    if (kecamatan != null) data.kecamatan = kecamatan
+    const id = pid.data.id;
+    const cur = await prisma.viola.findUnique({ where: { id } });
+    if (!cur) return res.status(404).json({ message: 'Data tidak ditemukan' });
 
-    const aSet = administrasi != null
-    const iSet = permintaanInformasi != null
-    const pSet = penangananPengaduan != null
-    if (aSet) data.administrasi = Math.max(0, Number(administrasi) || 0)
-    if (iSet) data.permintaanInformasi = Math.max(0, Number(permintaanInformasi) || 0)
-    if (pSet) data.penangananPengaduan = Math.max(0, Number(penangananPengaduan) || 0)
+    const data = { ...body.data };
+    const a = data.administrasi ?? cur.administrasi;
+    const i = data.permintaanInformasi ?? cur.permintaanInformasi;
+    const p = data.penangananPengaduan ?? cur.penangananPengaduan;
+    data.jumlahPeserta = a + i + p;
 
-    // ambil state terbaru untuk menghitung jumlahPeserta
-    const cur = await prisma.viola.findUnique({ where: { id } })
-    if (!cur) return res.status(404).json({ message: 'Data tidak ditemukan' })
-
-    const a = aSet ? data.administrasi : cur.administrasi
-    const i = iSet ? data.permintaanInformasi : cur.permintaanInformasi
-    const p = pSet ? data.penangananPengaduan : cur.penangananPengaduan
-    data.jumlahPeserta = (a || 0) + (i || 0) + (p || 0)
-
-    const row = await prisma.viola.update({ where: { id }, data })
-    res.json(row)
+    const row = await prisma.viola.update({ where: { id }, data });
+    res.json(row);
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ message: 'Gagal mengubah data VIOLA' })
+    console.error(e);
+    res.status(500).json({ message: 'Gagal mengubah data VIOLA' });
   }
 }
 
-// DELETE /viola/:id
 async function remove(req, res) {
   try {
-    const id = Number(req.params.id)
-    await prisma.viola.delete({ where: { id } })
-    res.json({ ok: true })
+    const pid = idParam.safeParse(req.params);
+    if (!pid.success) return res.status(400).json({ message: 'Param tidak valid', issues: pid.error.flatten() });
+
+    const id = pid.data.id;
+    await prisma.viola.delete({ where: { id } });
+    res.json({ ok: true });
   } catch (e) {
-    console.error(e)
-    res.status(500).json({ message: 'Gagal menghapus data VIOLA' })
+    console.error(e);
+    res.status(500).json({ message: 'Gagal menghapus data VIOLA' });
   }
 }
 
-module.exports = { list, create, update, remove }
+module.exports = { list, create, update, remove };

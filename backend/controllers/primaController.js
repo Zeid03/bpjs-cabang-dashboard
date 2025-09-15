@@ -1,79 +1,104 @@
-const prisma = require('../src/prisma')
+const { z } = require('zod');
+const prisma = require('../src/prisma');
 
-// GET /prima?tahun=2025&bulan=9 (opsional)
+const periodSchema = z.object({
+  tahun: z.coerce.number().int().min(2000).max(2100),
+  bulan: z.coerce.number().int().min(1).max(12),
+});
+
+const wavesSchema = z.object({
+  wave1: z.coerce.number().int().min(0).default(0),
+  wave2: z.coerce.number().int().min(0).default(0),
+  wave3: z.coerce.number().int().min(0).default(0),
+  wave4: z.coerce.number().int().min(0).default(0),
+});
+
+const listQuery = z.object({
+  tahun: z.coerce.number().int().min(2000).max(2100).optional(),
+  bulan: z.coerce.number().int().min(1).max(12).optional(),
+});
+
+const idParam = z.object({ id: z.coerce.number().int().positive() });
+
 async function list(req, res) {
-  const { tahun, bulan } = req.query
-  const where = {
-    ...(tahun ? { tahun: Number(tahun) } : {}),
-    ...(bulan ? { bulan: Number(bulan) } : {}),
+  try {
+    const pq = listQuery.safeParse(req.query);
+    if (!pq.success) return res.status(400).json({ message: 'Query tidak valid', issues: pq.error.flatten() });
+    const where = { ...(pq.data.tahun ? { tahun: pq.data.tahun } : {}), ...(pq.data.bulan ? { bulan: pq.data.bulan } : {}) };
+    const rows = await prisma.indeksPrima.findMany({ where, orderBy: [{ tahun: 'desc' }, { bulan: 'desc' }] });
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Gagal mengambil data' });
   }
-  const rows = await prisma.indeksPrima.findMany({
-    where,
-    orderBy: [{ tahun: 'desc' }, { bulan: 'desc' }],
-  })
-  res.json(rows)
 }
 
-// POST /prima
 async function create(req, res) {
-  const {
-    tahun, bulan,
-    wave1 = 0, wave2 = 0, wave3 = 0, wave4 = 0,
-  } = req.body
+  try {
+    const p1 = periodSchema.safeParse(req.body);
+    const p2 = wavesSchema.safeParse(req.body);
+    if (!p1.success || !p2.success) {
+      return res.status(400).json({ message: 'Input tidak valid', issues: { ...p1.error?.flatten?.(), ...p2.error?.flatten?.() } });
+    }
+    const { tahun, bulan } = p1.data;
+    const { wave1, wave2, wave3, wave4 } = p2.data;
+    const nilai = wave1 + wave2 + wave3 + wave4;
 
-  if (tahun == null || bulan == null) {
-    return res.status(400).json({ message: 'tahun & bulan wajib' })
+    const row = await prisma.indeksPrima.create({ data: { tahun, bulan, wave1, wave2, wave3, wave4, nilai } });
+    res.status(201).json(row);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Gagal membuat data Prima' });
   }
-
-  const w1 = Number(wave1) || 0
-  const w2 = Number(wave2) || 0
-  const w3 = Number(wave3) || 0
-  const w4 = Number(wave4) || 0
-  const nilai = w1 + w2 + w3 + w4
-
-  const row = await prisma.indeksPrima.create({
-    data: {
-      tahun: Number(tahun),
-      bulan: Number(bulan),
-      wave1: w1, wave2: w2, wave3: w3, wave4: w4,
-      nilai,
-    },
-  })
-  res.status(201).json(row)
 }
 
-// PUT /prima/:id
 async function update(req, res) {
-  const id = Number(req.params.id)
-  const { tahun, bulan, wave1, wave2, wave3, wave4 } = req.body
+  try {
+    const pid = idParam.safeParse(req.params);
+    if (!pid.success) return res.status(400).json({ message: 'Param tidak valid', issues: pid.error.flatten() });
 
-  // ambil data lama utk hitung nilai baru
-  const before = await prisma.indeksPrima.findUnique({ where: { id } })
-  if (!before) return res.status(404).json({ message: 'Data tidak ditemukan' })
+    const periodPartial = periodSchema.partial().safeParse(req.body);
+    const wavesPartial = wavesSchema.partial().safeParse(req.body);
+    if (!periodPartial.success || !wavesPartial.success) {
+      return res.status(400).json({ message: 'Input tidak valid', issues: { ...periodPartial.error?.flatten?.(), ...wavesPartial.error?.flatten?.() } });
+    }
 
-  const w1 = wave1 != null ? Number(wave1) : before.wave1
-  const w2 = wave2 != null ? Number(wave2) : before.wave2
-  const w3 = wave3 != null ? Number(wave3) : before.wave3
-  const w4 = wave4 != null ? Number(wave4) : before.wave4
-  const nilai = w1 + w2 + w3 + w4
+    const id = pid.data.id;
+    const before = await prisma.indeksPrima.findUnique({ where: { id } });
+    if (!before) return res.status(404).json({ message: 'Data tidak ditemukan' });
 
-  const row = await prisma.indeksPrima.update({
-    where: { id },
-    data: {
-      ...(tahun != null ? { tahun: Number(tahun) } : {}),
-      ...(bulan != null ? { bulan: Number(bulan) } : {}),
-      wave1: w1, wave2: w2, wave3: w3, wave4: w4,
-      nilai,
-    },
-  })
-  res.json(row)
+    const wave1 = wavesPartial.data.wave1 ?? before.wave1;
+    const wave2 = wavesPartial.data.wave2 ?? before.wave2;
+    const wave3 = wavesPartial.data.wave3 ?? before.wave3;
+    const wave4 = wavesPartial.data.wave4 ?? before.wave4;
+    const nilai = wave1 + wave2 + wave3 + wave4;
+
+    const row = await prisma.indeksPrima.update({
+      where: { id },
+      data: {
+        tahun: periodPartial.data.tahun ?? before.tahun,
+        bulan: periodPartial.data.bulan ?? before.bulan,
+        wave1, wave2, wave3, wave4, nilai,
+      },
+    });
+    res.json(row);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Gagal mengubah data Prima' });
+  }
 }
 
-// DELETE /prima/:id
 async function remove(req, res) {
-  const id = Number(req.params.id)
-  await prisma.indeksPrima.delete({ where: { id } })
-  res.json({ ok: true })
+  try {
+    const pid = idParam.safeParse(req.params);
+    if (!pid.success) return res.status(400).json({ message: 'Param tidak valid', issues: pid.error.flatten() });
+
+    await prisma.indeksPrima.delete({ where: { id: pid.data.id } });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ message: 'Gagal menghapus data Prima' });
+  }
 }
 
-module.exports = { list, create, update, remove }
+module.exports = { list, create, update, remove };
