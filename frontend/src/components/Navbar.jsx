@@ -1,96 +1,138 @@
-// import { useAuth } from '../context/AuthContext';
-// import { Link, useLocation } from 'react-router-dom';
+// import React from 'react'
+// import { NavLink, useNavigate } from 'react-router-dom'
+// import { useAuth } from '../context/AuthContext'
+// import logo from '../../assets/bpjs horizontal.png' // ganti ke '/logo-bpjs.png' kalau di public/
+
+// const linkBase =
+//   'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition'
+// const idle =
+//   'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+// const active =
+//   'text-white bg-gradient-to-r from-[#009B4C] to-[#0071BC] shadow'
 
 // export default function Navbar() {
-//   const { user, logout } = useAuth();
-//   const { pathname } = useLocation();
+//   const { logout } = useAuth()
+//   const navigate = useNavigate()
 
-//   const NavLink = ({ to, label }) => (
-//     <Link
-//       to={to}
-//       className={`px-3 py-2 rounded-xl hover:bg-slate-200/60 transition ${
-//         pathname === to ? 'bg-slate-200' : ''
-//       }`}
-//     >
-//       {label}
-//     </Link>
-//   );
+//   const onLogout = () => {
+//     logout()
+//     navigate('/login')
+//   }
 
 //   return (
-//     <header className="sticky top-0 z-10 bg-white/70 backdrop-blur border-b border-slate-200">
-//       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-//         <div className="flex items-center gap-2 text-xl font-semibold">
-//           <span>🩺</span>
-//           <span>BPJS Cabang Dashboard</span>
-//         </div>
-//         <nav className="flex items-center gap-2">
-//           <NavLink to="/" label="Dashboard" />
-//           <NavLink to="/upload" label="Upload Data" />
-//         </nav>
+//     <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur">
+//       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+//         {/* Brand */}
 //         <div className="flex items-center gap-3">
-//           <div className="text-sm text-slate-600">{user?.name}</div>
-//           <button onClick={logout} className="px-3 py-2 rounded-xl bg-slate-900 text-white hover:opacity-90">
+//           <img src={logo} alt="BPJS" className="h-8" />
+//           {/* <span className="text-lg font-semibold text-slate-800">
+//             BPJS Cabang Dashboard
+//           </span> */}
+//         </div>
+
+//         {/* Nav */}
+//         <nav className="flex items-center gap-2">
+//           <NavLink
+//             to="/"
+//             className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
+//             end
+//           >
+//             Dashboard
+//           </NavLink>
+//           <NavLink
+//             to="/upload"
+//             className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
+//           >
+//             Upload Data
+//           </NavLink>
+//         </nav>
+
+//         {/* Right */}
+//         <div className="flex items-center gap-3">
+//           <span className="hidden text-sm text-slate-600 md:inline">Admin Cabang</span>
+//           <button
+//             onClick={onLogout}
+//             className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+//           >
 //             Logout
 //           </button>
 //         </div>
 //       </div>
 //     </header>
-//   );
+//   )
 // }
 
 
-import React from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import logo from '../../assets/bpjs horizontal.png' // ganti ke '/logo-bpjs.png' kalau di public/
+import React, { useEffect, useState, useCallback } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import logo from "../../assets/bpjs horizontal.png";
 
 const linkBase =
-  'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition'
-const idle =
-  'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-const active =
-  'text-white bg-gradient-to-r from-[#009B4C] to-[#0071BC] shadow'
+  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition";
+const idle = "text-slate-600 hover:text-slate-900 hover:bg-slate-100";
+const active = "text-white bg-gradient-to-r from-[#009B4C] to-[#0071BC] shadow";
 
 export default function Navbar() {
-  const { logout } = useAuth()
-  const navigate = useNavigate()
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const onLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const [open, setOpen] = useState(false);
+
+  const onLogout = useCallback(() => {
+    logout();
+    navigate("/login");
+  }, [logout, navigate]);
+
+  // Tutup menu mobile saat route berubah
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  // Tutup dengan tombol Escape
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    if (open) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const NavItems = ({ onClick }) => (
+    <>
+      <NavLink
+        to="/"
+        end
+        className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
+        onClick={onClick}
+      >
+        Dashboard
+      </NavLink>
+      <NavLink
+        to="/upload"
+        className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
+        onClick={onClick}
+      >
+        Upload Data
+      </NavLink>
+    </>
+  );
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <img src={logo} alt="BPJS" className="h-8" />
-          {/* <span className="text-lg font-semibold text-slate-800">
-            BPJS Cabang Dashboard
-          </span> */}
+          <img src={logo} alt="BPJS" className="h-8 w-auto" />
         </div>
 
-        {/* Nav */}
-        <nav className="flex items-center gap-2">
-          <NavLink
-            to="/"
-            className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-            end
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/upload"
-            className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-          >
-            Upload Data
-          </NavLink>
+        {/* Desktop Nav */}
+        <nav className="hidden items-center gap-2 md:flex">
+          <NavItems />
         </nav>
 
-        {/* Right */}
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-slate-600 md:inline">Admin Cabang</span>
+        {/* Right (Desktop) */}
+        <div className="hidden items-center gap-3 md:flex">
+          <span className="text-sm text-slate-600">Admin Cabang</span>
           <button
             onClick={onLogout}
             className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
@@ -98,7 +140,72 @@ export default function Navbar() {
             Logout
           </button>
         </div>
+
+        {/* Mobile: Hamburger */}
+        <div className="flex items-center gap-2 md:hidden">
+          <button
+            type="button"
+            aria-label={open ? "Tutup menu" : "Buka menu"}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#009B4C]"
+          >
+            {/* Icon hamburger / close */}
+            <svg
+              className={`h-5 w-5 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              {open ? (
+                <path d="M18 6L6 18M6 6l12 12" />
+              ) : (
+                <>
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </>
+              )}
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Backdrop */}
+      {open && (
+        <button
+          aria-hidden
+          tabIndex={-1}
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] md:hidden"
+        />
+      )}
+
+      {/* Mobile Menu Panel */}
+      <div
+        id="mobile-menu"
+        className={`md:hidden ${open ? "block" : "hidden"}`}
+      >
+        <div className="absolute left-0 right-0 z-40 mt-0 origin-top rounded-b-2xl border-b bg-white px-4 pb-4 pt-2 shadow-lg">
+          <nav className="flex flex-col gap-2">
+            <NavItems onClick={() => setOpen(false)} />
+          </nav>
+
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-sm text-slate-600">Admin Cabang</span>
+            <button
+              onClick={onLogout}
+              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
       </div>
     </header>
-  )
+  );
 }

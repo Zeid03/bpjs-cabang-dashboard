@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../src/prisma')
 
 // Comparator aman untuk objek { month: 'YYYY-MM' }
@@ -77,4 +79,15 @@ async function stats(req, res) {
   }
 }
 
-module.exports = { stats }
+async function getWilayah(req, res) { // ⬅️ PERBAIKAN: Deklarasikan sebagai fungsi biasa
+  try {
+    const wilayahPath = path.join(__dirname, '../src/data/wilayah.json');
+    const wilayahData = fs.readFileSync(wilayahPath, 'utf-8');
+    res.json(JSON.parse(wilayahData));
+  } catch (error) {
+    console.error('Gagal memuat data wilayah:', error);
+    res.status(500).json({ message: 'Gagal memuat data wilayah', error: error.message });
+  }
+}
+
+module.exports = { stats, getWilayah } 

@@ -74,6 +74,11 @@ const KEY_ALIASES = {
   'kabupaten': 'kabupaten',
   'kecamatan': 'kecamatan',
 
+  // desa / kelurahan (beberapa file bisa pakai istilah berbeda)
+   'desa': 'desa',
+   'kelurahan': 'desa',
+   'gampong': 'desa',
+
   // VIOLA
   'administrasi': 'administrasi',
   'permintaan informasi': 'permintaanInformasi',
@@ -137,6 +142,7 @@ function parseExcel(filePath) {
       return {
         kabupaten: String(r.kabupaten ?? '').trim(),
         kecamatan: String(r.kecamatan ?? '').trim(),
+        desa: String(r.desa ?? '').trim(),
         tanggal: t,
         lokasi: String(r.lokasi ?? '').trim(),
         peserta: Number(r.peserta ?? 0),

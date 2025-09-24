@@ -83,7 +83,7 @@ export default function Upload() {
         <div className="rounded-2xl bg-white p-5 ring-1 ring-slate-200">
           <h2 className="mb-2 text-sm font-semibold text-slate-700">📌 Format Header</h2>
           <ol className="ml-5 list-decimal space-y-1 text-sm text-slate-600">
-            <li><b>Kegiatan BPJS KesehatanKeliling</b>: <code>Kabupaten</code> | <code>Kecamatan</code> | <code>Tanggal</code> | <code>Lokasi</code> | <code>Peserta</code></li>
+            <li><b>Kegiatan BPJS KesehatanKeliling</b>: <code>Kabupaten</code> | <code>Kecamatan</code> | <code>Desa</code> | <code>Tanggal</code> | <code>Lokasi</code> | <code>Peserta</code></li>
             <li><b>VIOLA</b>: <code>Kabupaten</code> | <code>Kecamatan</code> | <code>Bulan</code> (YYYY-MM) | <code>Administrasi</code> | <code>Permintaan Informasi</code> | <code>Penanganan Pengaduan</code></li>
             <li><b>Indeks Performa Pelayanan Prima</b>: <code>Tahun</code> | <code>Bulan</code> (1..12) | <code>Wave1</code> | <code>Wave2</code> | <code>Wave3</code> | <code>Wave4</code></li>
             <li><b>Indeks Penanganan Pengaduan Peserta</b>: <code>Bulan</code> (YYYY-MM) | <code>Jumlah</code> | <code>1 hari</code> | <code>2 hari</code> | <code>3 hari</code> | <code>&gt;3 hari</code></li>

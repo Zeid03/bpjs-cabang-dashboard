@@ -112,7 +112,7 @@ export default function DetailPengaduan() {
         {/* ===== Data Mentah + CRUD ===== */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-semibold">Data Mentah Pengaduan</h2>
+            <h2 className="font-semibold">Data Pengaduan</h2>
             <button
               onClick={openCreate}
               className="rounded-xl bg-gradient-to-r from-[#009B4C] to-[#0071BC] px-3 py-2 text-sm font-medium text-white"

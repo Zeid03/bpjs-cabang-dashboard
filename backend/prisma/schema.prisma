@@ -22,10 +22,9 @@ model KegiatanKeliling {
   tanggal   DateTime
   lokasi    String
   peserta   Int
-
-  
   kabupaten String   @default("")
   kecamatan String   @default("")
+  desa      String   @default("")
 }
 
  model Viola {
