@@ -15,6 +15,7 @@ const dashboardRoutes = require('../routes/dashboard');
 const kelilingRoutes = require('../routes/keliling');
 const pengaduanRoutes = require('../routes/pengaduan');
 const primaRoutes = require('../routes/prima');
+const primaTargetRoutes = require('../routes/primaTarget');
 const uploadRoutes = require('../routes/upload');
 const violaRoutes = require('../routes/viola');
 
@@ -69,6 +70,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/keliling', kelilingRoutes);
 app.use('/api/pengaduan', pengaduanRoutes);
 app.use('/api/prima', primaRoutes);
+app.use('/api/prima/target', primaTargetRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/viola', violaRoutes);
 

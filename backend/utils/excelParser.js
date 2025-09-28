@@ -182,7 +182,7 @@ function parseExcel(filePath) {
       const wave3 = Number(r.wave3 ?? 0) || 0
       const wave4 = Number(r.wave4 ?? 0) || 0
       const nilai = wave1 + wave2 + wave3 + wave4
-      return { tahun, bulan, wave1, wave2, wave3, wave4, nilai }
+      return { tahun, bulan, wave1, wave2, wave3, wave4, nilai: nilai / 4 }
     })
     .filter((x) => x.tahun && x.bulan)
 

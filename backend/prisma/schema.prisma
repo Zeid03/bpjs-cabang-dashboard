@@ -40,7 +40,6 @@ model KegiatanKeliling {
  }
 
 
-
 model IndeksPrima {
   id     Int      @id @default(autoincrement())
 
@@ -49,17 +48,16 @@ model IndeksPrima {
   bulan  Int      // 1..12
 
   // waves
-  wave1  Int      @default(0)
-  wave2  Int      @default(0)
-  wave3  Int      @default(0)
-  wave4  Int      @default(0)
+  wave1  Float      @default(0)
+  wave2  Float      @default(0)
+  wave3  Float      @default(0)
+  wave4  Float      @default(0)
 
   // total (disimpan untuk export)
-  nilai  Int      @default(0)
+  nilai  Float      @default(0)
 
   createdAt DateTime @default(now())
 }
-
 
 model IndeksPengaduan {
   id     Int    @id @default(autoincrement())
@@ -73,3 +71,9 @@ model IndeksPengaduan {
   slagt3 Int    @default(0) // > 3 hari
 }
 
+model PrimaTarget {
+  id       Int      @id @default(autoincrement())
+  tahun    Int      @unique
+  target   Float    @default(0)
+  createdAt DateTime @default(now())
+}

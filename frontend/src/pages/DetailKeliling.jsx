@@ -341,7 +341,6 @@ export default function DetailKeliling() {
                         <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  {/* ⬇️ Tambah dua kolom di SEBELUM Tanggal */}
                   <th className="px-3 py-2 text-left">Kabupaten</th>
                   <th className="px-3 py-2 text-left">Kecamatan</th>
                   <th className="px-3 py-2 text-left">Desa</th>

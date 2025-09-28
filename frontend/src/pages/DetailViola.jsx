@@ -1,4 +1,4 @@
-// Refactore tahap 1
+// Refactore tahap 1 — gunakan TOTAL peserta per bulan
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import useSWR from 'swr'
@@ -12,8 +12,11 @@ const fetcher = (url) => api.get(url).then(r => r.data)
 
 export default function DetailViola() {
   const navigate = useNavigate()
-  const { data, mutate } = useSWR('/dashboard/stats', fetcher)
+  // Ambil data mentah untuk dihitung total per bulan
   const { data: rows, mutate: mutateRows } = useSWR('/viola', fetcher)
+
+  // (Opsional) jika tetap ingin card lain refresh
+  const { data: stats, mutate } = useSWR('/dashboard/stats', fetcher)
 
   const [open, setOpen] = React.useState(false)
   const [form, setForm] = React.useState({
@@ -23,8 +26,35 @@ export default function DetailViola() {
     administrasi: '', permintaanInformasi: '', penangananPengaduan: '',
   })
 
-  if (!data) return <div className="p-6">Loading…</div>
-  const vioAggr = data.violaTrend || []
+  const toN = (v) => Math.max(0, Number(v) || 0)
+  const calcJumlah = (f) => toN(f.administrasi) + toN(f.permintaanInformasi) + toN(f.penangananPengaduan)
+
+  // === AGREGASI TOTAL per bulan (bukan rata-rata) ===
+  const vioAggrTotal = React.useMemo(() => {
+    const map = new Map() // key: 'YYYY-MM' -> { month, freq, totalPeserta }
+    for (const r of (rows || [])) {
+      const month = String(r.bulan || '').trim()
+      if (!month) continue
+      const jp = Number(
+        r.jumlahPeserta != null
+          ? r.jumlahPeserta
+          : toN(r.administrasi) + toN(r.permintaanInformasi) + toN(r.penangananPengaduan)
+      ) || 0
+
+      const prev = map.get(month) || { month, freq: 0, totalPeserta: 0 }
+      prev.freq += 1
+      prev.totalPeserta += jp
+      map.set(month, prev)
+    }
+
+    // sort ASC by 'YYYY-MM'
+    return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month))
+  }, [rows])
+
+  // Data untuk chart LineViola: gunakan field 'jumlahPeserta' = TOTAL
+  const chartData = React.useMemo(() => {
+    return vioAggrTotal.map(d => ({ month: d.month, jumlahPeserta: d.totalPeserta }))
+  }, [vioAggrTotal])
 
   function openCreate() {
     setForm({
@@ -48,9 +78,6 @@ export default function DetailViola() {
     setOpen(true)
   }
 
-  const toN = (v) => Math.max(0, Number(v) || 0)
-  const calcJumlah = (f) => toN(f.administrasi) + toN(f.permintaanInformasi) + toN(f.penangananPengaduan)
-
   async function onSubmit(e) {
     e.preventDefault()
     const payload = {
@@ -60,7 +87,7 @@ export default function DetailViola() {
       administrasi: toN(form.administrasi),
       permintaanInformasi: toN(form.permintaanInformasi),
       penangananPengaduan: toN(form.penangananPengaduan),
-      // jumlahPeserta akan dihitung ulang di backend
+      // jumlahPeserta dihitung ulang di backend
     }
     if (form.id) await api.put(`/viola/${form.id}`, payload)
     else await api.post('/viola', payload)
@@ -68,29 +95,34 @@ export default function DetailViola() {
     await mutateRows()
     await mutate()
   }
+
   async function onDelete(id) {
     if (!confirm('Hapus data ini?')) return
     await api.delete(`/viola/${id}`)
-    await mutateRows(); await mutate()
+    await mutateRows()
+    await mutate()
   }
+
+  if (!rows) return <div className="p-6">Loading…</div>
 
   return (
     <div className="min-h-screen bg-slate-50">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+        {/* Chart TOTAL peserta per bulan */}
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-          <LineViola data={vioAggr} big />
+          <LineViola data={chartData} big />
         </div>
 
-        {/* Rekap bulanan */}
+        {/* Rekap bulanan (TOTAL, bukan rata-rata) */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <h2 className="mb-3 font-semibold">Rekap Bulanan</h2>
           <DataTable
-            rows={vioAggr}
+            rows={vioAggrTotal}
             columns={[
               { key: 'month', header: 'Bulan' },
               { key: 'freq', header: 'Jumlah Frekuensi' },
-              { key: 'jumlahPeserta', header: 'Jumlah Peserta (Rata-rata)' },
+              { key: 'totalPeserta', header: 'Jumlah Peserta (Total)' },
             ]}
             searchable={false}
           />
@@ -212,5 +244,3 @@ export default function DetailViola() {
     </div>
   )
 }
-
-
