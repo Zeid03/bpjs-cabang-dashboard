@@ -5,9 +5,9 @@ const bcrypt = require('bcrypt');
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = 'admin@bpjs.go.id';
+  const adminEmail = 'bpjskesaceh@gmail.com';
   const name = 'Admin Cabang';
-  const rawPassword = 'admin123'; // GANTI setelah pertama kali login!
+  const rawPassword = 'AdminCabang@2025'; // GANTI setelah pertama kali login!
   const passwordHash = await bcrypt.hash(rawPassword, 10);
 
   const existing = await prisma.user.findUnique({ where: { email: adminEmail } });

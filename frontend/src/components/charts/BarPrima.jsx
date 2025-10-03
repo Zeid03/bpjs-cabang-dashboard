@@ -58,7 +58,7 @@ const SmallValueLabel = ({ x, y, width, value }) => {
   const cx = x + width / 2
   const cy = y - 4
   return (
-    <text x={cx} y={cy} textAnchor="middle" className="fill-slate-600" fontSize="6">
+    <text x={cx} y={cy} textAnchor="middle" className="fill-slate-600" fontSize="5.5">
       {Number(value).toFixed(1)}
     </text>
   )

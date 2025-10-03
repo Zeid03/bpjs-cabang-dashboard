@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
-const { authRequired } = require('../middleware/auth');
+const { authRequired, requireAdmin } = require('../middleware/auth'); // ⬅️ tambah requireAdmin
 const { uploadExcel } = require('../controllers/uploadController');
 
 const router = express.Router();
@@ -16,10 +16,10 @@ if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Rate limit khusus upload (lebih ketat dari global)
+// Rate limit khusus upload
 const uploadLimiter = rateLimit({
-  windowMs: Number(process.env.RATE_LIMIT_UPLOAD_WINDOW_MS || 15 * 60 * 1000), // 15 menit
-  max: Number(process.env.RATE_LIMIT_UPLOAD_MAX || 30), // 30 upload / 15m / IP
+  windowMs: Number(process.env.RATE_LIMIT_UPLOAD_WINDOW_MS || 15 * 60 * 1000),
+  max: Number(process.env.RATE_LIMIT_UPLOAD_MAX || 30),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Terlalu banyak upload. Coba lagi nanti.' },
@@ -30,7 +30,6 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname || '').toLowerCase();
-    // izinkan hanya .xlsx / .xls
     const allowed = ['.xlsx', '.xls'];
     const safeExt = allowed.includes(ext) ? ext : '.xlsx';
     const rand = crypto.randomBytes(16).toString('hex');
@@ -57,18 +56,19 @@ const upload = multer({
   storage,
   fileFilter: safeFileFilter,
   limits: {
-    fileSize: Number(process.env.MAX_UPLOAD_SIZE_BYTES || 500 * 1024 * 1024), // 500 mb default
+    fileSize: Number(process.env.MAX_UPLOAD_SIZE_BYTES || 500 * 1024 * 1024),
     files: 1,
   },
 });
 
-// Endpoint upload
+// Endpoint upload → hanya admin
 router.post(
   '/excel',
-  authRequired,        // hanya user login
-  uploadLimiter,       // cegah brute force / flood
+  authRequired,
+  requireAdmin,      // ⬅️ hanya admin
+  uploadLimiter,
   upload.single('file'),
-  uploadExcel          // controller sudah melakukan parsing + zod validasi file
+  uploadExcel
 );
 
 module.exports = router;

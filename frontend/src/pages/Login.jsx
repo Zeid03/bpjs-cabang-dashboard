@@ -16,7 +16,8 @@ export default function Login() {
       setLoading(true)
       // ✅ backend expects: { email, password }
       await login(values.email, values.password)
-      window.location.href = '/'
+      const from = (history.state && history.state.usr && history.state.usr.from && history.state.usr.from.pathname) || '/'
+      window.location.href = from
     } catch (e) {
       // tampilkan pesan error dari backend jika ada
       const msg = e?.response?.data?.message || 'Email atau password salah'
@@ -95,9 +96,10 @@ export default function Login() {
         </form>
 
         {/* Footer */}
-        <p className="mt-4 text-center text-xs text-slate-500">
-          Gunakan akun admin yang diberikan. Hubungi IT jika lupa password.
-        </p>
+        <div className="mt-4 flex items-center justify-between text-xs">
+          <a href="/forgot" className="text-[#0071BC] hover:underline">Lupa password?</a>
+          <span className="text-slate-500">Gunakan akun admin yang diberikan.</span>
+        </div>
       </div>
     </div>
   )

@@ -1,80 +1,14 @@
-// import React from 'react'
-// import { NavLink, useNavigate } from 'react-router-dom'
-// import { useAuth } from '../context/AuthContext'
-// import logo from '../../assets/bpjs horizontal.png' // ganti ke '/logo-bpjs.png' kalau di public/
-
-// const linkBase =
-//   'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition'
-// const idle =
-//   'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-// const active =
-//   'text-white bg-gradient-to-r from-[#009B4C] to-[#0071BC] shadow'
-
-// export default function Navbar() {
-//   const { logout } = useAuth()
-//   const navigate = useNavigate()
-
-//   const onLogout = () => {
-//     logout()
-//     navigate('/login')
-//   }
-
-//   return (
-//     <header className="sticky top-0 z-40 w-full border-b bg-white/95 backdrop-blur">
-//       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-//         {/* Brand */}
-//         <div className="flex items-center gap-3">
-//           <img src={logo} alt="BPJS" className="h-8" />
-//           {/* <span className="text-lg font-semibold text-slate-800">
-//             BPJS Cabang Dashboard
-//           </span> */}
-//         </div>
-
-//         {/* Nav */}
-//         <nav className="flex items-center gap-2">
-//           <NavLink
-//             to="/"
-//             className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-//             end
-//           >
-//             Dashboard
-//           </NavLink>
-//           <NavLink
-//             to="/upload"
-//             className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-//           >
-//             Upload Data
-//           </NavLink>
-//         </nav>
-
-//         {/* Right */}
-//         <div className="flex items-center gap-3">
-//           <span className="hidden text-sm text-slate-600 md:inline">Admin Cabang</span>
-//           <button
-//             onClick={onLogout}
-//             className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-//           >
-//             Logout
-//           </button>
-//         </div>
-//       </div>
-//     </header>
-//   )
-// }
-
-
 import React, { useEffect, useState, useCallback } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../../assets/bpjs horizontal.png";
 
-const linkBase =
-  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition";
+const linkBase = "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition";
 const idle = "text-slate-600 hover:text-slate-900 hover:bg-slate-100";
 const active = "text-white bg-gradient-to-r from-[#009B4C] to-[#0071BC] shadow";
 
 export default function Navbar() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,13 +16,11 @@ export default function Navbar() {
 
   const onLogout = useCallback(() => {
     logout();
-    navigate("/login");
+    navigate("/");
   }, [logout, navigate]);
 
   // Tutup menu mobile saat route berubah
-  useEffect(() => {
-    setOpen(false);
-  }, [location.pathname]);
+  useEffect(() => setOpen(false), [location.pathname]);
 
   // Tutup dengan tombol Escape
   useEffect(() => {
@@ -97,22 +29,34 @@ export default function Navbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const NavItems = ({ onClick }) => (
+  const NavItemsPublic = ({ onClick }) => (
     <>
-      <NavLink
-        to="/"
-        end
-        className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-        onClick={onClick}
-      >
+      <NavLink to="/" end className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
         Dashboard
       </NavLink>
-      <NavLink
-        to="/upload"
-        className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`}
-        onClick={onClick}
-      >
-        Upload Data
+      {/* Halaman detail publik */}
+      <NavLink to="/detail/keliling" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        Keliling
+      </NavLink>
+      <NavLink to="/detail/viola" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        VIOLA
+      </NavLink>
+      <NavLink to="/detail/prima" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        Prima
+      </NavLink>
+      <NavLink to="/detail/pengaduan" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        Pengaduan
+      </NavLink>
+    </>
+  );
+
+  const NavItemsAdmin = ({ onClick }) => (
+    <>
+      <NavLink to="/upload" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        Upload
+      </NavLink>
+      <NavLink to="/account" className={({ isActive }) => `${linkBase} ${isActive ? active : idle}`} onClick={onClick}>
+        Akun
       </NavLink>
     </>
   );
@@ -127,18 +71,30 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden items-center gap-2 md:flex">
-          <NavItems />
+          <NavItemsPublic />
+          {user?.role === 'admin' && <NavItemsAdmin />}
         </nav>
 
         {/* Right (Desktop) */}
         <div className="hidden items-center gap-3 md:flex">
-          <span className="text-sm text-slate-600">Admin Cabang</span>
-          <button
-            onClick={onLogout}
-            className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-          >
-            Logout
-          </button>
+          {!user ? (
+            <a
+              href="/login"
+              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              Login
+            </a>
+          ) : (
+            <>
+              <span className="text-sm text-slate-600">{user.name || 'Admin'}</span>
+              <button
+                onClick={onLogout}
+                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile: Hamburger */}
@@ -151,16 +107,7 @@ export default function Navbar() {
             onClick={() => setOpen((v) => !v)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl border bg-white text-slate-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#009B4C]"
           >
-            {/* Icon hamburger / close */}
-            <svg
-              className={`h-5 w-5 transition-transform duration-200 ${open ? "rotate-90" : ""}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg className={`h-5 w-5 transition-transform duration-200 ${open ? "rotate-90" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               {open ? (
                 <path d="M18 6L6 18M6 6l12 12" />
               ) : (
@@ -186,23 +133,32 @@ export default function Navbar() {
       )}
 
       {/* Mobile Menu Panel */}
-      <div
-        id="mobile-menu"
-        className={`md:hidden ${open ? "block" : "hidden"}`}
-      >
+      <div id="mobile-menu" className={`md:hidden ${open ? "block" : "hidden"}`}>
         <div className="absolute left-0 right-0 z-40 mt-0 origin-top rounded-b-2xl border-b bg-white px-4 pb-4 pt-2 shadow-lg">
           <nav className="flex flex-col gap-2">
-            <NavItems onClick={() => setOpen(false)} />
+            <NavItemsPublic onClick={() => setOpen(false)} />
+            {user?.role === 'admin' && <NavItemsAdmin onClick={() => setOpen(false)} />}
           </nav>
 
           <div className="mt-3 flex items-center justify-between">
-            <span className="text-sm text-slate-600">Admin Cabang</span>
-            <button
-              onClick={onLogout}
-              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
-              Logout
-            </button>
+            {!user ? (
+              <a
+                href="/login"
+                className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+              >
+                Login
+              </a>
+            ) : (
+              <>
+                <span className="text-sm text-slate-600">{user.name || 'Admin'}</span>
+                <button
+                  onClick={onLogout}
+                  className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+                >
+                  Logout
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

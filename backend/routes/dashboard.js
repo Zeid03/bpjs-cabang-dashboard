@@ -1,10 +1,10 @@
 const express = require('express')
-const { authRequired } = require('../middleware/auth')
-const { getWilayah } = require('../controllers/dashboardController');
-const { stats } = require('../controllers/dashboardController')
+const { getWilayah, stats } = require('../controllers/dashboardController')
 const router = express.Router()
 
-router.get('/stats', authRequired, stats)
-router.get('/Wilayah', authRequired, getWilayah)
+// Publik (tanpa login)
+router.get('/stats', stats)
+// NOTE: pertahankan casing path sesuai versi lama agar tidak memutus frontend
+router.get('/Wilayah', getWilayah)
 
 module.exports = router

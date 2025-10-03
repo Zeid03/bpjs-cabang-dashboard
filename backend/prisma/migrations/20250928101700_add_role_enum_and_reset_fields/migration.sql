@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE `user` ADD COLUMN `resetExpires` DATETIME(3) NULL,
+    ADD COLUMN `resetToken` VARCHAR(96) NULL,
+    ADD COLUMN `role` ENUM('admin', 'user') NOT NULL DEFAULT 'admin',
+    ADD COLUMN `updatedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    MODIFY `name` VARCHAR(191) NULL;

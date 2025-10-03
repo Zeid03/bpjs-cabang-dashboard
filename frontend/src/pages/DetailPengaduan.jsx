@@ -5,11 +5,15 @@ import api from '../api/axios'
 import Navbar from '../components/Navbar'
 import Modal from '../components/Modal'
 import BarPengaduan from '../components/charts/BarPengaduan'
+import { useAuth } from '../context/AuthContext'
 
 const fetcher = (url) => api.get(url).then(r => r.data)
 
 export default function DetailPengaduan() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
   const { data, mutate } = useSWR('/dashboard/stats', fetcher)
   const { data: rows, mutate: mutateRows } = useSWR('/pengaduan', fetcher)
 
@@ -23,10 +27,12 @@ export default function DetailPengaduan() {
   const aggr = data.pengaduanBar || []
 
   function openCreate() {
+    if (!isAdmin) return
     setForm({ id: null, bulan: '', jumlah: '', sla1: '', sla2: '', sla3: '', slagt3: '' })
     setOpen(true)
   }
   function openEdit(row) {
+    if (!isAdmin) return
     setForm({
       id: row.id,
       bulan: row.bulan,
@@ -55,6 +61,7 @@ export default function DetailPengaduan() {
     await mutate()
   }
   async function onDelete(id) {
+    if (!isAdmin) return
     if (!confirm('Hapus data ini?')) return
     await api.delete(`/pengaduan/${id}`)
     await mutateRows(); await mutate()
@@ -65,12 +72,10 @@ export default function DetailPengaduan() {
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-6">
 
-        {/* Chart */}
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <BarPengaduan data={aggr} big showTotal />
         </div>
 
-        {/* ===== Rekap Bulanan (HEADER BERTINGKAT) ===== */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <h2 className="mb-3 font-semibold">Rekap Bulanan</h2>
 
@@ -80,7 +85,6 @@ export default function DetailPengaduan() {
                 <tr className="bg-slate-50">
                   <th className="px-3 py-2 text-left align-bottom" rowSpan={2}>Bulan</th>
                   <th className="px-3 py-2 text-left align-bottom" rowSpan={2}>Jumlah Pengaduan</th>
-                  {/* Kolom induk SLA */}
                   <th className="px-3 py-2 text-center" colSpan={4}>SLA</th>
                 </tr>
                 <tr className="bg-slate-50">
@@ -109,16 +113,17 @@ export default function DetailPengaduan() {
           </div>
         </section>
 
-        {/* ===== Data Mentah + CRUD ===== */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Data Pengaduan</h2>
-            <button
-              onClick={openCreate}
-              className="rounded-xl bg-gradient-to-r from-[#009B4C] to-[#0071BC] px-3 py-2 text-sm font-medium text-white"
-            >
-              + Input Data
-            </button>
+            {isAdmin && (
+              <button
+                onClick={openCreate}
+                className="rounded-xl bg-gradient-to-r from-[#009B4C] to-[#0071BC] px-3 py-2 text-sm font-medium text-white"
+              >
+                + Input Data
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -131,7 +136,7 @@ export default function DetailPengaduan() {
                   <th className="px-3 py-2 text-left">SLA 2 hari</th>
                   <th className="px-3 py-2 text-left">SLA 3 hari</th>
                   <th className="px-3 py-2 text-left">SLA &gt;3 hari</th>
-                  <th className="px-3 py-2"></th>
+                  {isAdmin && <th className="px-3 py-2"></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -143,14 +148,16 @@ export default function DetailPengaduan() {
                     <td className="px-3 py-2">{r.sla2 ?? 0}</td>
                     <td className="px-3 py-2">{r.sla3 ?? 0}</td>
                     <td className="px-3 py-2">{r.slagt3 ?? 0}</td>
-                    <td className="px-3 py-2 text-right">
-                      <button onClick={() => openEdit(r)} className="mr-2 rounded-lg border px-2 py-1">Edit</button>
-                      <button onClick={() => onDelete(r.id)} className="rounded-lg border px-2 py-1 text-red-600">Hapus</button>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-right">
+                        <button onClick={() => openEdit(r)} className="mr-2 rounded-lg border px-2 py-1">Edit</button>
+                        <button onClick={() => onDelete(r.id)} className="rounded-lg border px-2 py-1 text-red-600">Hapus</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {(!rows || rows.length === 0) &&
-                  <tr><td className="px-3 py-6 text-center text-slate-500" colSpan={7}>Belum ada data</td></tr>}
+                  <tr><td className="px-3 py-6 text-center text-slate-500" colSpan={isAdmin ? 7 : 6}>Belum ada data</td></tr>}
               </tbody>
             </table>
           </div>
@@ -161,7 +168,6 @@ export default function DetailPengaduan() {
         </button>
       </main>
 
-      {/* Modal Input/Edit */}
       <Modal open={open} title={form.id ? 'Edit Data Pengaduan' : 'Input Data Pengaduan'} onClose={() => setOpen(false)}>
         <form onSubmit={onSubmit} className="space-y-3">
           <div>

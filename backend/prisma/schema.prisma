@@ -9,12 +9,25 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===== Enum untuk role =====
+enum Role {
+  admin
+  user
+}
+
+// ===== Model User =====
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  name         String
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
+  name         String?
   passwordHash String
-  createdAt    DateTime @default(now())
+
+  role         Role      @default(admin)
+  resetToken   String?   @db.VarChar(96)
+  resetExpires DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
 }
 
 model KegiatanKeliling {

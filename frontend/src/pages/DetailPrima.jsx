@@ -6,16 +6,17 @@ import Navbar from '../components/Navbar'
 import DataTable from '../components/DataTable'
 import Modal from '../components/Modal'
 import BarPrima from '../components/charts/BarPrima'
+import { useAuth } from '../context/AuthContext'
 
 const fetcher = (url) => api.get(url).then(r => r.data)
 const pad2 = (n) => String(n).padStart(2, '0')
 
 export default function DetailPrima() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
-  // Data mentah /prima (tanpa input target per bulan)
   const { data: rows, mutate: mutateRows } = useSWR('/prima?order=asc', fetcher)
-  // Target tahunan
   const { data: targets, mutate: mutateTargets } = useSWR('/prima/target', fetcher)
 
   const [open, setOpen] = React.useState(false)
@@ -23,7 +24,6 @@ export default function DetailPrima() {
     id: null, tahun: '', bulan: '', wave1: '', wave2: '', wave3: '', wave4: ''
   })
 
-  // State untuk panel target tahunan
   const [yearSel, setYearSel] = React.useState('')
   const [yearTarget, setYearTarget] = React.useState('')
 
@@ -41,10 +41,7 @@ export default function DetailPrima() {
 
   if (!rows) return <div className="p-6">Loading…</div>
 
-  // Buat map target per tahun (untuk chart & rekap)
   const targetMap = new Map((targets || []).map(t => [Number(t.tahun), Number(t.target || 0)]))
-
-  // Data chart: wave1..4 + target per tahun
   const chartData = (rows || []).map(r => ({
     month: `${r.tahun}-${pad2(r.bulan)}`,
     wave1: Number(r.wave1 || 0),
@@ -53,8 +50,6 @@ export default function DetailPrima() {
     wave4: Number(r.wave4 || 0),
     target: targetMap.get(r.tahun) || 0,
   }))
-
-  // Rekap bulanan: rata-rata + target (2 desimal)
   const rekap = (rows || []).map(r => {
     const avg = (Number(r.wave1||0)+Number(r.wave2||0)+Number(r.wave3||0)+Number(r.wave4||0))/4
     return {
@@ -65,10 +60,12 @@ export default function DetailPrima() {
   })
 
   function openCreate() {
+    if (!isAdmin) return
     setForm({ id: null, tahun: '', bulan: '', wave1: '', wave2: '', wave3: '', wave4: '' })
     setOpen(true)
   }
   function openEdit(row) {
+    if (!isAdmin) return
     setForm({
       id: row.id,
       tahun: row.tahun,
@@ -96,6 +93,7 @@ export default function DetailPrima() {
     await mutateRows()
   }
   async function onDelete(id) {
+    if (!isAdmin) return
     if (!confirm('Hapus data ini?')) return
     await api.delete(`/prima/${id}`)
     await mutateRows()
@@ -104,7 +102,7 @@ export default function DetailPrima() {
   async function saveYearTarget(e) {
     e.preventDefault()
     const payload = { tahun: Number(yearSel), target: parseFloat(yearTarget) || 0 }
-    await api.post('/prima/target', payload) // upsert
+    await api.post('/prima/target', payload)
     await mutateTargets()
   }
 
@@ -115,41 +113,40 @@ export default function DetailPrima() {
       <Navbar />
       <main className="mx-auto max-w-6xl px-4 py-6 space-y-6">
 
-        {/* Panel Target Tahunan */}
-        <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
-          <h2 className="mb-3 font-semibold">Target Tahunan Indeks Prima</h2>
-          <form onSubmit={saveYearTarget} className="flex flex-col md:flex-row gap-3 items-start md:items-end">
-            <div>
-              <label className="text-sm">Tahun</label>
-              <select
-                value={yearSel}
-                onChange={e=>setYearSel(e.target.value)}
-                className="block w-40 rounded-xl border-slate-300"
-              >
-                <option value="" disabled>Pilih tahun</option>
-                {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm">Target Tahun</label>
-              <input
-                type="number" step="0.01"
-                value={yearTarget}
-                onChange={e=>setYearTarget(e.target.value)}
-                className="block w-40 rounded-xl border-slate-300"
-                placeholder="mis. 85"
-              />
-            </div>
-            <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">Simpan Target</button>
-          </form>
-        </section>
+        {isAdmin && (
+          <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+            <h2 className="mb-3 font-semibold">Target Tahunan Indeks Prima</h2>
+            <form onSubmit={saveYearTarget} className="flex flex-col md:flex-row gap-3 items-start md:items-end">
+              <div>
+                <label className="text-sm">Tahun</label>
+                <select
+                  value={yearSel}
+                  onChange={e=>setYearSel(e.target.value)}
+                  className="block w-40 rounded-xl border-slate-300"
+                >
+                  <option value="" disabled>Pilih tahun</option>
+                  {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-sm">Target Tahun</label>
+                <input
+                  type="number" step="0.01"
+                  value={yearTarget}
+                  onChange={e=>setYearTarget(e.target.value)}
+                  className="block w-40 rounded-xl border-slate-300"
+                  placeholder="mis. 85"
+                />
+              </div>
+              <button className="rounded-xl bg-slate-900 px-4 py-2 text-white">Simpan Target</button>
+            </form>
+          </section>
+        )}
 
-        {/* Chart */}
         <div className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <BarPrima data={chartData} big />
         </div>
 
-        {/* Rekap Bulanan */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <h2 className="mb-3 font-semibold">Rekap Bulanan</h2>
           <DataTable
@@ -163,16 +160,17 @@ export default function DetailPrima() {
           />
         </section>
 
-        {/* Data mentah */}
         <section className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Data Indeks Prima</h2>
-            <button
-              onClick={openCreate}
-              className="rounded-xl bg-gradient-to-r from-[#009B4C] to-[#0071BC] px-3 py-2 text-sm font-medium text-white"
-            >
-              + Input Data
-            </button>
+            {isAdmin && (
+              <button
+                onClick={openCreate}
+                className="rounded-xl bg-gradient-to-r from-[#009B4C] to-[#0071BC] px-3 py-2 text-sm font-medium text-white"
+              >
+                + Input Data
+              </button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -185,7 +183,7 @@ export default function DetailPrima() {
                   <th className="px-3 py-2 text-left">Wave 2</th>
                   <th className="px-3 py-2 text-left">Wave 3</th>
                   <th className="px-3 py-2 text-left">Wave 4</th>
-                  <th></th>
+                  {isAdmin && <th></th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -197,16 +195,18 @@ export default function DetailPrima() {
                     <td className="px-3 py-2">{Number(r.wave2).toFixed(2)}</td>
                     <td className="px-3 py-2">{Number(r.wave3).toFixed(2)}</td>
                     <td className="px-3 py-2">{Number(r.wave4).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right whitespace-nowrap">
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => openEdit(r)} className="rounded-lg border px-3 py-1.5">Edit</button>
-                        <button onClick={() => onDelete(r.id)} className="rounded-lg border px-3 py-1.5 text-red-600">Hapus</button>
-                      </div>
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => openEdit(r)} className="rounded-lg border px-3 py-1.5">Edit</button>
+                          <button onClick={() => onDelete(r.id)} className="rounded-lg border px-3 py-1.5 text-red-600">Hapus</button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {(!rows || rows.length === 0) &&
-                  <tr><td colSpan={7} className="text-center text-slate-500 py-6">Belum ada data</td></tr>}
+                  <tr><td colSpan={isAdmin ? 7 : 6} className="text-center text-slate-500 py-6">Belum ada data</td></tr>}
               </tbody>
             </table>
           </div>
